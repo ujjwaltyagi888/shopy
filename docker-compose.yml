@@ -1,0 +1,24 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
+      ports: ["5432:5432"]
+      volumes:
+        - pgdata:/var/lib/postgresql/data
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    ports: ["6379:6379"]
+    command: ["redis-server", "--appendonly", "yes"]
+# Optional adminer (web DB UI)
+  adminer:
+    image: adminer
+    restart: unless-stopped
+    ports: ["8080:8080"]
+volumes:
+  pgdata: {}
