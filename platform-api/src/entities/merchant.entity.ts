@@ -2,10 +2,10 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeor
 @Entity({ name: 'merchants' })
 export class Merchant {
 @PrimaryGeneratedColumn('uuid') id!: string;
-@Column({ unique: true }) shop_domain!: string;
-@Column({ nullable: true }) shopify_access_token?: string;
-@Column({ nullable: true }) business_name?: string;
-@Column({ nullable: true }) contact_email?: string;
-@Column({ nullable: true }) gstin?: string;
-@CreateDateColumn() created_at!: Date;
+@Column({ name: "shop_domain", type: "text", unique: true }) shopDomain!: string;
+@Column({ name: "shopify_access_token", type: "text", nullable: true }) shopifyAccessToken?: string;
+@Column({ name: "business_name", type: "text", nullable: true }) businessName?: string;
+@Column({ name: "contact_email", type: "text", nullable: true }) contactEmail?: string;
+@Column({ type: "text", nullable: true }) gstin?: string;
+@CreateDateColumn({ name: "created_at", type: "timestamptz" }) createdAt!: Date;
 }

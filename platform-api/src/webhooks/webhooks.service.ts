@@ -1,30 +1,31 @@
-// empty
+import { IdempotencyService } from "../common/idempotency.service";
+import { AppDataSource } from "../db/typeorm.config";
+import { Merchant } from "../entities/merchant.entity";
+import { createShipmentQueue } from "../queues/bullmq.provider";
+import { Order } from "../entities/order.entity";
+import { OrderItem } from "../entities/order-item.entity";
+import { Product } from "../entities/product.entity";
 
-import { IdempotencyService } from "src/common/idempotency.service";
-import { AppDataSource } from "src/db/typeorm.config";
-import { IdempotencyKey } from "src/entities/idempotency-key.entity";
-import { Merchant } from "src/entities/merchant.entity";
-import { createShipmentQueue } from "src/queues/bullmq.provider";
 
-
-export class WebhooksService{
-    async handleOrdersCreate(raw: Buffer , topic: string, wid: string){
+export class WebhooksService {
+    async handleOrdersCreate(raw: Buffer, topic: string, wid: string, shopDomain: string) {
         const idempotencyKey = `${topic}:${wid}`;
-        if(await IdempotencyService.has(idempotencyKey)) return ;
-        
+        if (await IdempotencyService.has(idempotencyKey)) return;
+
+        const merchant = await AppDataSource.getRepository(Merchant).findOne({ where: { shopDomain } });
+        if (!merchant) throw new Error(`Unknown merchant domain: ${shopDomain}`);
         const payload = JSON.parse(raw.toString());
-        const shopDomain = payload?.domain || payload?.domain_name || payload?.myshopify_domain;
-        const merchant = await AppDataSource.getRepository(Merchant).findOne({where: {shop_domain:shopDomain}})
-        if(!merchant) throw new Error('Unknown merchant domain');
-        
+
         const orderRepo = AppDataSource.getRepository(Order);
         const itemRepo = AppDataSource.getRepository(OrderItem);
+        const productRepo = AppDataSource.getRepository(Product);
+
         const order = orderRepo.create({
-            merchant:merchant,
-            shopify_order_id : String(payload.id),
-            shppify_order_number : String(payload.order_number ?? ' '),
-            customer: {name: payload.customer?.first_name + ' '+payload.customer?.phone,email:payload.email },
-            shipping_address : payload.shipping_address,
+            merchant: merchant,
+            shopify_order_id: String(payload.id),
+            shopify_order_number: String(payload.order_number ?? ' '),
+            customer: { name: payload.customer?.first_name + ' ' + payload.customer?.phone, email: payload.email },
+            shipping_address: payload.shipping_address,
             billing_address: payload.billing_address,
             cod: payload.gateway?.toLowerCase()?.includes('cod') || false,
             total_paise: Math.round(Number(payload.total_price ?? 0) * 100),
@@ -32,17 +33,27 @@ export class WebhooksService{
         });
 
         await orderRepo.save(order);
-        
-        for(const li of payload.line_items ?? []){
+
+        for (const li of payload.line_items ?? []) {
+            const product = await productRepo.findOne({ where: { sku: li.sku } });
+            if (!product) {
+                console.warn(`Product with SKU ${li.sku} not found. Skipping line item.`);
+                continue;
+            }
             await itemRepo.save(itemRepo.create({
-                order:order,
-                product_id: undefined as any,
+                order: order,
+                product: product,
                 quantity: li.quantity,
-                unit_price_paise: Math.round(Number(li.price ? )*100)
+                unit_price_paise: Math.round(Number(li.price ?? 0) * 100)
             }));
         }
-        
+
         await IdempotencyService.add(idempotencyKey);
-        await createShipmentQueue.add('create',{orderId: order.id})
+        try {
+            await createShipmentQueue.add('create-shipment-job', { orderId: order.id });
+        } catch (err) {
+            console.error('queue add failed:', err);
+            throw new Error(`queue add failed: ${(err as Error)?.message ?? 'unknown error'}`);
+        }
     }
 }
