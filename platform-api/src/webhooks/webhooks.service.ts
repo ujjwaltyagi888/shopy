@@ -35,14 +35,10 @@ export class WebhooksService {
         await orderRepo.save(order);
 
         for (const li of payload.line_items ?? []) {
-            const product = await productRepo.findOne({ where: { sku: li.sku } });
-            if (!product) {
-                console.warn(`Product with SKU ${li.sku} not found. Skipping line item.`);
-                continue;
-            }
+            const prod = await productRepo.findOne({ where: { sku: li.sku } });
             await itemRepo.save(itemRepo.create({
                 order: order,
-                product: product,
+                product: prod || ({ id: null } as any),
                 quantity: li.quantity,
                 unit_price_paise: Math.round(Number(li.price ?? 0) * 100)
             }));

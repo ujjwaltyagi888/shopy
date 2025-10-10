@@ -14,5 +14,7 @@ export class Order {
 @Column('bigint', { nullable: true }) total_paise?: number;
 @Column({ default: 'INR' }) currency!: string;
 @Column({ default: 'created' }) status!: string;
+@Column({ type: 'text', nullable: true }) notes?: string;
+@Column('text', { array: true, nullable: true }) tags?: string[];
 @CreateDateColumn() created_at!: Date;
 }

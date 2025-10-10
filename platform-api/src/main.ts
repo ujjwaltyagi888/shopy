@@ -1,5 +1,6 @@
 // empty
 
+import '@shopify/shopify-api/adapters/node';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -15,6 +16,10 @@ async function bootstrap() {
         rawBody: true,
     });
     
+    app.enableCors({
+        origin: 'http://localhost:3000'
+    });
+
     await app.listen(cfg.port);
     console.log(`API listening on : ${cfg.port}`);
 }

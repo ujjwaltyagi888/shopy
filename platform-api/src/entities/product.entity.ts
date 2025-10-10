@@ -13,4 +13,5 @@ export class Product {
 @Column({ nullable: true, type: 'jsonb' }) images?: any;
 @Column({ default: true }) active!: boolean;
 @CreateDateColumn() created_at!: Date;
+@Column({ nullable: true }) shopify_product_id?: string;
 }

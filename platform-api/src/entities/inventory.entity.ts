@@ -1,34 +1,11 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from "typeorm";
-import { Product } from "./product.entity";
-
-@Entity({ name: "inventory" })
+import { Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn, Column, UpdateDateColumn } from 'typeorm';
+import { Product } from './product.entity';
+import { Warehouse } from './warehouse.entity';
+@Entity({ name: 'inventory' })
 export class Inventory {
-  @PrimaryGeneratedColumn("uuid")
-  id!: string;
-
-  @Column({ name: "product_id", type: "uuid" })
-  productId!: string;
-
-  @ManyToOne(() => Product)
-  @JoinColumn({ name: "product_id" })
-  product!: Product;
-
-  @Column({ name: "warehouse_id", type: "uuid", nullable: true })
-  warehouseId?: string;
-
-  @Column({ name: "location_name", type: "text", nullable: true })
-  locationName?: string;
-
-  @Column({ type: "int", default: 0 })
-  quantity!: number;
-
-  @UpdateDateColumn({ name: "updated_at", type: "timestamptz" })
-  updatedAt!: Date;
+@PrimaryGeneratedColumn('uuid') id!: string;
+@ManyToOne(() => Product, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'product_id' }) product!: Product;
+@ManyToOne(() => Warehouse, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'warehouse_id' }) warehouse!: Warehouse;
+@Column('int', { default: 0 }) quantity!: number;
+@UpdateDateColumn() updated_at!: Date;
 }
